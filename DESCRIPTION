@@ -1,0 +1,17 @@
+Package: qpcrpal
+Type: Package
+Title: Import, Organize and Analyze qPCR data
+Version: 0.1.2
+Authors@R: person("Daniel", "Hammarström", email = "daniel.hammarstrom@inn.no", role = c("aut", "cre"))
+Description: This package contains functions for importing, organizing and
+    analyzing qPCR data.
+License: MIT
+VignetteBuilder: knitr
+LazyData: FALSE
+Suggests: knitr, rmarkdown
+Imports:
+    dplyr,
+    tidyr,
+    readxl,
+    qpcR
+RoxygenNote: 6.0.1

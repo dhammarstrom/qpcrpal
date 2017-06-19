@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+
+<meta charset="utf-8" />
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="pandoc" />
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<meta name="author" content="Daniel Hammarström" />
+
+
+<title>qpcrpal - Import and analyze qpcr-data</title>
+
+
+
+<style type="text/css">code{white-space: pre;}</style>
+<style type="text/css">
+div.sourceCode { overflow-x: auto; }
+table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+  margin: 0; padding: 0; vertical-align: baseline; border: none; }
+table.sourceCode { width: 100%; line-height: 100%; }
+td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; color: #aaaaaa; border-right: 1px solid #aaaaaa; }
+td.sourceCode { padding-left: 5px; }
+code > span.kw { color: #007020; font-weight: bold; } /* Keyword */
+code > span.dt { color: #902000; } /* DataType */
+code > span.dv { color: #40a070; } /* DecVal */
+code > span.bn { color: #40a070; } /* BaseN */
+code > span.fl { color: #40a070; } /* Float */
+code > span.ch { color: #4070a0; } /* Char */
+code > span.st { color: #4070a0; } /* String */
+code > span.co { color: #60a0b0; font-style: italic; } /* Comment */
+code > span.ot { color: #007020; } /* Other */
+code > span.al { color: #ff0000; font-weight: bold; } /* Alert */
+code > span.fu { color: #06287e; } /* Function */
+code > span.er { color: #ff0000; font-weight: bold; } /* Error */
+code > span.wa { color: #60a0b0; font-weight: bold; font-style: italic; } /* Warning */
+code > span.cn { color: #880000; } /* Constant */
+code > span.sc { color: #4070a0; } /* SpecialChar */
+code > span.vs { color: #4070a0; } /* VerbatimString */
+code > span.ss { color: #bb6688; } /* SpecialString */
+code > span.im { } /* Import */
+code > span.va { color: #19177c; } /* Variable */
+code > span.cf { color: #007020; font-weight: bold; } /* ControlFlow */
+code > span.op { color: #666666; } /* Operator */
+code > span.bu { } /* BuiltIn */
+code > span.ex { } /* Extension */
+code > span.pp { color: #bc7a00; } /* Preprocessor */
+code > span.at { color: #7d9029; } /* Attribute */
+code > span.do { color: #ba2121; font-style: italic; } /* Documentation */
+code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Annotation */
+code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
+code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
+</style>
+
+
+
+<link href="data:text/css;charset=utf-8,body%20%7B%0Abackground%2Dcolor%3A%20%23fff%3B%0Amargin%3A%201em%20auto%3B%0Amax%2Dwidth%3A%20700px%3B%0Aoverflow%3A%20visible%3B%0Apadding%2Dleft%3A%202em%3B%0Apadding%2Dright%3A%202em%3B%0Afont%2Dfamily%3A%20%22Open%20Sans%22%2C%20%22Helvetica%20Neue%22%2C%20Helvetica%2C%20Arial%2C%20sans%2Dserif%3B%0Afont%2Dsize%3A%2014px%3B%0Aline%2Dheight%3A%201%2E35%3B%0A%7D%0A%23header%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0A%23TOC%20%7B%0Aclear%3A%20both%3B%0Amargin%3A%200%200%2010px%2010px%3B%0Apadding%3A%204px%3B%0Awidth%3A%20400px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Aborder%2Dradius%3A%205px%3B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Afont%2Dsize%3A%2013px%3B%0Aline%2Dheight%3A%201%2E3%3B%0A%7D%0A%23TOC%20%2Etoctitle%20%7B%0Afont%2Dweight%3A%20bold%3B%0Afont%2Dsize%3A%2015px%3B%0Amargin%2Dleft%3A%205px%3B%0A%7D%0A%23TOC%20ul%20%7B%0Apadding%2Dleft%3A%2040px%3B%0Amargin%2Dleft%3A%20%2D1%2E5em%3B%0Amargin%2Dtop%3A%205px%3B%0Amargin%2Dbottom%3A%205px%3B%0A%7D%0A%23TOC%20ul%20ul%20%7B%0Amargin%2Dleft%3A%20%2D2em%3B%0A%7D%0A%23TOC%20li%20%7B%0Aline%2Dheight%3A%2016px%3B%0A%7D%0Atable%20%7B%0Amargin%3A%201em%20auto%3B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dcolor%3A%20%23DDDDDD%3B%0Aborder%2Dstyle%3A%20outset%3B%0Aborder%2Dcollapse%3A%20collapse%3B%0A%7D%0Atable%20th%20%7B%0Aborder%2Dwidth%3A%202px%3B%0Apadding%3A%205px%3B%0Aborder%2Dstyle%3A%20inset%3B%0A%7D%0Atable%20td%20%7B%0Aborder%2Dwidth%3A%201px%3B%0Aborder%2Dstyle%3A%20inset%3B%0Aline%2Dheight%3A%2018px%3B%0Apadding%3A%205px%205px%3B%0A%7D%0Atable%2C%20table%20th%2C%20table%20td%20%7B%0Aborder%2Dleft%2Dstyle%3A%20none%3B%0Aborder%2Dright%2Dstyle%3A%20none%3B%0A%7D%0Atable%20thead%2C%20table%20tr%2Eeven%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Ap%20%7B%0Amargin%3A%200%2E5em%200%3B%0A%7D%0Ablockquote%20%7B%0Abackground%2Dcolor%3A%20%23f6f6f6%3B%0Apadding%3A%200%2E25em%200%2E75em%3B%0A%7D%0Ahr%20%7B%0Aborder%2Dstyle%3A%20solid%3B%0Aborder%3A%20none%3B%0Aborder%2Dtop%3A%201px%20solid%20%23777%3B%0Amargin%3A%2028px%200%3B%0A%7D%0Adl%20%7B%0Amargin%2Dleft%3A%200%3B%0A%7D%0Adl%20dd%20%7B%0Amargin%2Dbottom%3A%2013px%3B%0Amargin%2Dleft%3A%2013px%3B%0A%7D%0Adl%20dt%20%7B%0Afont%2Dweight%3A%20bold%3B%0A%7D%0Aul%20%7B%0Amargin%2Dtop%3A%200%3B%0A%7D%0Aul%20li%20%7B%0Alist%2Dstyle%3A%20circle%20outside%3B%0A%7D%0Aul%20ul%20%7B%0Amargin%2Dbottom%3A%200%3B%0A%7D%0Apre%2C%20code%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0Aborder%2Dradius%3A%203px%3B%0Acolor%3A%20%23333%3B%0Awhite%2Dspace%3A%20pre%2Dwrap%3B%20%0A%7D%0Apre%20%7B%0Aborder%2Dradius%3A%203px%3B%0Amargin%3A%205px%200px%2010px%200px%3B%0Apadding%3A%2010px%3B%0A%7D%0Apre%3Anot%28%5Bclass%5D%29%20%7B%0Abackground%2Dcolor%3A%20%23f7f7f7%3B%0A%7D%0Acode%20%7B%0Afont%2Dfamily%3A%20Consolas%2C%20Monaco%2C%20%27Courier%20New%27%2C%20monospace%3B%0Afont%2Dsize%3A%2085%25%3B%0A%7D%0Ap%20%3E%20code%2C%20li%20%3E%20code%20%7B%0Apadding%3A%202px%200px%3B%0A%7D%0Adiv%2Efigure%20%7B%0Atext%2Dalign%3A%20center%3B%0A%7D%0Aimg%20%7B%0Abackground%2Dcolor%3A%20%23FFFFFF%3B%0Apadding%3A%202px%3B%0Aborder%3A%201px%20solid%20%23DDDDDD%3B%0Aborder%2Dradius%3A%203px%3B%0Aborder%3A%201px%20solid%20%23CCCCCC%3B%0Amargin%3A%200%205px%3B%0A%7D%0Ah1%20%7B%0Amargin%2Dtop%3A%200%3B%0Afont%2Dsize%3A%2035px%3B%0Aline%2Dheight%3A%2040px%3B%0A%7D%0Ah2%20%7B%0Aborder%2Dbottom%3A%204px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Apadding%2Dbottom%3A%202px%3B%0Afont%2Dsize%3A%20145%25%3B%0A%7D%0Ah3%20%7B%0Aborder%2Dbottom%3A%202px%20solid%20%23f7f7f7%3B%0Apadding%2Dtop%3A%2010px%3B%0Afont%2Dsize%3A%20120%25%3B%0A%7D%0Ah4%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23f7f7f7%3B%0Amargin%2Dleft%3A%208px%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Ah5%2C%20h6%20%7B%0Aborder%2Dbottom%3A%201px%20solid%20%23ccc%3B%0Afont%2Dsize%3A%20105%25%3B%0A%7D%0Aa%20%7B%0Acolor%3A%20%230033dd%3B%0Atext%2Ddecoration%3A%20none%3B%0A%7D%0Aa%3Ahover%20%7B%0Acolor%3A%20%236666ff%3B%20%7D%0Aa%3Avisited%20%7B%0Acolor%3A%20%23800080%3B%20%7D%0Aa%3Avisited%3Ahover%20%7B%0Acolor%3A%20%23BB00BB%3B%20%7D%0Aa%5Bhref%5E%3D%22http%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0Aa%5Bhref%5E%3D%22https%3A%22%5D%20%7B%0Atext%2Ddecoration%3A%20underline%3B%20%7D%0A%0Acode%20%3E%20span%2Ekw%20%7B%20color%3A%20%23555%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Edt%20%7B%20color%3A%20%23902000%3B%20%7D%20%0Acode%20%3E%20span%2Edv%20%7B%20color%3A%20%2340a070%3B%20%7D%20%0Acode%20%3E%20span%2Ebn%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Efl%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Ech%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Est%20%7B%20color%3A%20%23d14%3B%20%7D%20%0Acode%20%3E%20span%2Eco%20%7B%20color%3A%20%23888888%3B%20font%2Dstyle%3A%20italic%3B%20%7D%20%0Acode%20%3E%20span%2Eot%20%7B%20color%3A%20%23007020%3B%20%7D%20%0Acode%20%3E%20span%2Eal%20%7B%20color%3A%20%23ff0000%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%0Acode%20%3E%20span%2Efu%20%7B%20color%3A%20%23900%3B%20font%2Dweight%3A%20bold%3B%20%7D%20%20code%20%3E%20span%2Eer%20%7B%20color%3A%20%23a61717%3B%20background%2Dcolor%3A%20%23e3d2d2%3B%20%7D%20%0A" rel="stylesheet" type="text/css" />
+
+</head>
+
+<body>
+
+
+
+
+<h1 class="title toc-ignore">qpcrpal - Import and analyze qpcr-data</h1>
+<h4 class="author"><em>Daniel Hammarström</em></h4>
+<h4 class="date"><em>19 juni 2017</em></h4>
+
+
+
+<div id="introduction-to-package" class="section level2">
+<h2>Introduction to package</h2>
+<p>With this package you are able to analyze raw qPCR-data from ABI qPCR-systems. Data needs to be properly named and exported from the software (see experimental design). Exported data is analyzed as single runs or replicates using the <a href="http://cran.r-project.org/web/packages/qpcR/">qpcR-package</a>. In the default mode, a sigmoidal model (l4) is fitted to raw fluorescence data and Cq-values is calculated based on the second derivative maximum method.</p>
+</div>
+<div id="experimental-design" class="section level2">
+<h2>Experimental design</h2>
+<div id="overview" class="section level3">
+<h3>Overview</h3>
+<p>To analyze relative expression and fold-change over different exeprimental conditions, one or more target genes are analyzed in relation to one or more reference genes. To account for possible variations due to instruments, chemistry and day-to-day human clumsiness, reference genes and target genes for one sample batch (e.g. one study participant) are commonly run on the same 96- or 384-well plate. The resulting relative expression is later compared between different sample batches.</p>
+<p>Two or more plates are run with the same target- and reference-genes to create technical replicates. Replicates are modeled togther using the qpcR-package and the model-fit is used to calculate qPCR-variables of interest.</p>
+<p>To date this software can handle exports from ABI7500 Software and QuantStudio™ Design &amp; Analysis Software.</p>
+</div>
+<div id="sample-identity-naming-convention" class="section level3">
+<h3>Sample identity, naming convention</h3>
+<p>To be able to model two or more reactions in concert (replicates), the function <code>prepare_batch()</code> must be able to find the replicate identifier. This is done on basis of <em>Sample Name</em> and <em>Target Name</em> in the exported excel-file from the supported softwares.</p>
+<p><em>Sample Name</em> should consist of information on the sample, i.e. <code>id</code>, <code>condition</code>, <code>timepoint</code> and importantly, <code>replicate</code> number. Each sub-information should be separated by a space or a character/symbol (e.g. “_“). The position of the sub-information in the can be specified whitin the <code>prepare_batch()</code> or <code>read_*()</code> functions (see below).</p>
+<p><em>Target Name</em> should accuratly separate targets (i.e. genes) and different primer pairs. Separate target and primer pair with by a space or a character/symbol (e.g. “_“).</p>
+</div>
+</div>
+<div id="workflow" class="section level2">
+<h2>Workflow</h2>
+<div id="exporting-data-from-abi7500-and-quantstudio-5" class="section level3">
+<h3>Exporting data from ABI7500 and Quantstudio 5</h3>
+<p>Each run must be exported, make sure to export all wells that has been used in the experiment. Export <em>Raw Data</em> and <em>Results</em> from whitin the export tool of the ABI7500 or Quantstuio Software. All columns of the <em>Results</em> should be exported. Save the exported .xls- or .xlsx-file(s) in a folder of your choosing, giving it a unique name.</p>
+</div>
+<div id="prepare-an-analysis-batch" class="section level3">
+<h3>Prepare an analysis-batch</h3>
+<p>One analysis batch consists of measured genes-of-interest (GoI) and reference-genes (refG) for all samples in one study. The number of genes in one batch is limited by samples*genes=number of wells. We analyze one batch at the time for accurate handling of GoI and refG. The function <code>prepare_batch()</code> uses <code>read_quant5()</code> or <code>read_ABI()</code> to compile a data frame with raw fluorescence data for every unique sample. The raw fluorescence data is expressed as <span class="math inline">\(R_n=\frac{R}{P}\)</span> where <span class="math inline">\(R\)</span> is the fluorescence of the reporter dye (SYBR) and <span class="math inline">\(P\)</span> is the fluorescence of the passive reference. Store the data frame from <code>prepare_batch()</code> as an object in your R environment.</p>
+</div>
+<div id="analyze-raw-data" class="section level3">
+<h3>Analyze raw data</h3>
+<p>Once you have your prepared analysis batch stored in the environment (or on a file) you can model it with <code>model_qpcr()</code>. Store the output in the environment. This output contains a list of models built from raw fluorescence qpcr data using <code>qpcR::pcrfit()</code>. The list of models can subsequently be analyzed using <code>analyze_models()</code> which extracts qpcr-estimates from each model using <code>qpcr::efficiency()</code>. The resulting data frame contains sample information, model fit estimates and Cq-values, calculated based on the second derivative maximum method.</p>
+</div>
+</div>
+<div id="example-of-an-analysis-workflow" class="section level2">
+<h2>Example of an analysis workflow</h2>
+<p>In this example, four files have been exported from the ABI7500 software and placed in a folder called <code>./qpcr_exports/</code>. Prior to export, all Sample Names were organized as participant ID, condition, timepoint and replicate separated by a space. Each target were named as gene symbol and primer pair id separated by a space.</p>
+<p>We start the analysis by importing data and preparing the batch.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">batch&lt;-<span class="kw">prepare_batch</span>(<span class="st">&quot;qpcr_exports&quot;</span>, <span class="dt">progress=</span><span class="ot">FALSE</span>)</code></pre></div>
+<pre><code>## [1] &quot;1 of 4&quot;
+## [1] &quot;2 of 4&quot;
+## [1] &quot;3 of 4&quot;
+## [1] &quot;4 of 4&quot;</code></pre>
+<p>The batch contains the following information:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r"><span class="kw">head</span>(batch)</code></pre></div>
+<pre><code>##   Well  ID condition timepoint replicate   target
+## 1   A1 FP2         R        w0     cDNA1 Myc F1R1
+## 2   A1 FP2         R        w0     cDNA1 Myc F1R1
+## 3   A1 FP2         R        w0     cDNA1 Myc F1R1
+## 4   A1 FP2         R        w0     cDNA1 Myc F1R1
+## 5   A1 FP2         R        w0     cDNA1 Myc F1R1
+## 6   A1 FP2         R        w0     cDNA1 Myc F1R1
+##                      filename Cycle        Rn
+## 1 qpcr_exports/Run301 FP2.xls     1 0.6768753
+## 2 qpcr_exports/Run301 FP2.xls     2 0.6839118
+## 3 qpcr_exports/Run301 FP2.xls     3 0.6864389
+## 4 qpcr_exports/Run301 FP2.xls     4 0.6879932
+## 5 qpcr_exports/Run301 FP2.xls     5 0.6903608
+## 6 qpcr_exports/Run301 FP2.xls     6 0.6987968</code></pre>
+<p>Using the prepared batch we can now fit models. The <code>model_qpcr()</code> function can pass arguments to the <code>pcrfit()</code> function, this is a good idea if you want to control model selection for fitting. As a default, a 4-parameter log-logistic model is fitted. This option is made explicit in the example below.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">models&lt;-<span class="kw">model_qpcr</span>(batch, <span class="dt">model=</span>l4, <span class="dt">progress=</span><span class="ot">FALSE</span>)</code></pre></div>
+<p>A final step before we can use the data in downstream analysis is to analyze models using <code>analyze_models()</code>.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">results&lt;-<span class="kw">analyze_models</span>(models, <span class="dt">progress=</span><span class="ot">FALSE</span>)</code></pre></div>
+<p>The resulting data frame contains sample ID separated with the character of your choosing and cpD2 that can be used as the cycle threshold.</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">results[<span class="kw">c</span>(<span class="dv">1</span>:<span class="dv">6</span>),<span class="kw">c</span>(<span class="dv">1</span>,<span class="dv">9</span>)]</code></pre></div>
+<pre><code>##                      ID  cpD2
+## 1   FP2_L_w0_CCND1 F3R3 30.87
+## 2     FP2_L_w0_Myc F1R1 32.29
+## 3 FP2_L_w0_rRNA18s F2R2 13.83
+## 4 FP2_L_w0_rRNA28s F2R2 13.79
+## 5 FP2_L_w0_rRNA45s F5R5 26.02
+## 6 FP2_L_w0_rRNA58s F2R2 16.75</code></pre>
+<div id="using-qpcrpal-with-pipes" class="section level3">
+<h3>Using qpcrpal with pipes</h3>
+<p>The functions in this workflow can be expressed as a <a href="https://cran.r-project.org/web/packages/magrittr/vignettes/magrittr.html">pipes</a>. The above workflow can be expressed as:</p>
+<div class="sourceCode"><pre class="sourceCode r"><code class="sourceCode r">results&lt;-<span class="kw">prepare_batch</span>(<span class="st">&quot;qpcr_exports&quot;</span>, <span class="dt">progress=</span><span class="ot">FALSE</span>)%&gt;%
+<span class="st">  </span><span class="kw">model_qpcr</span>(<span class="dt">model=</span>l4, <span class="dt">progress=</span><span class="ot">FALSE</span>)%&gt;%
+<span class="st">  </span><span class="kw">analyze_models</span>(<span class="dt">progress=</span><span class="ot">FALSE</span>)</code></pre></div>
+</div>
+</div>
+
+
+
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+  (function () {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.src  = "https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML";
+    document.getElementsByTagName("head")[0].appendChild(script);
+  })();
+</script>
+
+</body>
+</html>
