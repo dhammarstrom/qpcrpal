@@ -42,8 +42,6 @@ prepare_batch <- function(folder, ..., progress=TRUE, equipment="ABI"){
       for(i in 1:length(files)){
         dat[[i]] <- read_ABI(paste(folder,"/", files[i], sep=""), ...)
 
-        print(paste(i, "of", length(files)))
-        flush.console()
       }
 
       # compile to one data.frame

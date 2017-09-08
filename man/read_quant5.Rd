@@ -6,7 +6,7 @@
 \usage{
 read_quant5(filename, sample_separator = " ", sample_ID = 1,
   sample_condition = 2, sample_timepoint = 3, sample_replicate = 4,
-  start_cycle = 1, end_cycle = 40)
+  start_cycle = 1, end_cycle = 40, skip = 19)
 }
 \arguments{
 \item{filename}{A path or filename of an excel file containing 'Results' and 'Raw Data' exported from QuantStudio}
@@ -24,6 +24,8 @@ read_quant5(filename, sample_separator = " ", sample_ID = 1,
 \item{start_cycle}{First cycle to extract from export, default=1}
 
 \item{end_cycle}{Last cycle to extract from export, default=40}
+
+\item{skip}{How many rows needs to be skipped before column names in the export?}
 }
 \value{
 A data frame containing sample and target information and raw data over 40 cycles.

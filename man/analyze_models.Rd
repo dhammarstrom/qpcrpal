@@ -4,7 +4,7 @@
 \alias{analyze_models}
 \title{Analyze models from model_qpcr() using efficiency() from the qpcR-package}
 \usage{
-analyze_models(models, replicate = TRUE, progress = TRUE, ...)
+analyze_models(models, progress = TRUE, ...)
 }
 \arguments{
 \item{models}{a list of models created with qpcrpal::model_qpcr()}

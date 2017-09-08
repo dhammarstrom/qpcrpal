@@ -8,6 +8,7 @@
 #' @param sample_replicate Default=4
 #' @param start_cycle First cycle to extract from export, default=1
 #' @param end_cycle Last cycle to extract from export, default=40
+#' @param skip How many rows needs to be skipped before column names in the export?
 #' @return A data frame containing sample and target information and raw data over 40 cycles.
 #' @import "dplyr"
 #' @import "readxl"
@@ -22,13 +23,14 @@ read_quant5<-function(filename,
                    sample_timepoint=3,
                    sample_replicate=4,
                    start_cycle=1,
-                   end_cycle=40){
+                   end_cycle=40,
+                   skip=19){
 
   # reads 'Results' tab from excel export
   capture.output(
-    results <- data.frame(read_excel(filename, sheet = "Results", skip=19)))
+    results <- data.frame(read_excel(filename, sheet = "Results", skip=skip)))
   # limit data to rows containing well info
-  wellID <- paste(rep(toupper(letters[1:8]), 12), rep(seq(1:12), each=8), sep="")
+  wellID <- paste(rep(toupper(letters[1:16]), 24), rep(seq(1:24), each=16), sep="")
   results <- results[results[,2] %in% wellID, ]
 
 
@@ -52,7 +54,7 @@ read_quant5<-function(filename,
   clean.data$filename <- as.character(clean.data$filename)
 
   # raw data read
-  raw <- data.frame(readxl::read_excel(filename, sheet = "Raw Data", skip=19))
+  raw <- data.frame(readxl::read_excel(filename, sheet = "Raw Data", skip=skip))
 
   # extract only amplification cycles
   cycles <- start_cycle:end_cycle

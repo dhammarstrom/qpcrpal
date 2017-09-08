@@ -8,7 +8,7 @@
 #' @import "qpcR"
 #' @export
 
-analyze_models<-function(models, replicate=TRUE, progress=TRUE, ...){
+analyze_models<-function(models, progress=TRUE, ...){
 
   samples<-length(models)
 

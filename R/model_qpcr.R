@@ -25,62 +25,70 @@ model_qpcr<-function(rawData, sampleID=c(2,3,4,5), replicate=TRUE, progress=TRUE
 
 
     # reduce dataset to only contain replicate, sampleID, cycle and Rn
-    rawData2<-rawData[,c(5, 8, 9, 10)]
+    rawData2<-rawData[,c(8, 9, 10)]
 
-    # spread dataset based on replicate, Rn values in to columns
-    spreadData<-spread(rawData2, replicate, Rn)
+
 
     # Creates an empty list for models
     models<-list()
 
     # number of unique samples and replicates
-    samples<-unique(spreadData$sampleID)
-    replicates<-ncol(spreadData)
+    samples<-unique(rawData2$sampleID)
 
 
 
-if(progress==TRUE){
 
-  pb <- txtProgressBar(min = 0, max = length(samples), style = 3) #text based bar
+    if(progress==TRUE){
 
-
-  # loop for analyzing and storing data from qpcR model fit
-  for(l in 1:length(samples)){
-
-    tempData<-spreadData[spreadData$sampleID==samples[l],]
-
-    models[[l]]<-qpcR::pcrfit(tempData, cyc=1, fluo=c(seq(from=3, to=replicates)), ...)
-    names(models)[l]<-tempData[1,2]
-    setTxtProgressBar(pb, l)
+      pb <- txtProgressBar(min = 0, max = length(samples), style = 3) #text based bar
 
 
-  }
+      # loop for analyzing and storing data from qpcR model fit
+      for(l in 1:length(samples)){
 
-  close(pb)
+        tempData<-rawData2[rawData2$sampleID==samples[l],]
+
+        tryCatch({
+          models[[l]]<-qpcR::pcrfit(tempData, cyc=1, fluo=2, ...)
+          names(models)[l]<-tempData[1,3]
+        }, error=function(e){cat("ERROR from pcrfit() :",conditionMessage(e), "\n")})
 
 
-}
+        setTxtProgressBar(pb, l)
+
+
+      }
+
+      close(pb)
+
+
+    }
     if(progress==FALSE){
 
 
 
 
-  # loop for analyzing and storing data from qpcR model fit
-  for(l in 1:length(samples)){
 
-    tempData<-spreadData[spreadData$sampleID==samples[l],]
+      # loop for analyzing and storing data from qpcR model fit
+      for(l in 1:length(samples)){
 
-    models[[l]]<-qpcR::pcrfit(tempData, cyc=1, fluo=c(seq(from=3, to=replicates)), ...)
-    names(models)[l]<-tempData[1,2]
+        tempData<-rawData2[rawData2$sampleID==samples[l],]
 
-
-
-  }
-
+        tryCatch({
+          models[[l]]<-qpcR::pcrfit(tempData, cyc=1, fluo=2, ...)
+          names(models)[l]<-tempData[1,3]
+        }, error=function(e){cat("ERROR from pcrfit() :",conditionMessage(e), "\n")})
 
 
 
-}
+
+
+      }
+
+
+
+
+    }
 
 
     models # return list of models
@@ -106,42 +114,50 @@ if(progress==TRUE){
     # n of samples to be analyzed
     samples<-unique(rawData2$sampleID)
 
-if(progress==TRUE){
-  pb <- txtProgressBar(min = 0, max = length(samples), style = 3) #text based bar
+    if(progress==TRUE){
+      pb <- txtProgressBar(min = 0, max = length(samples), style = 3) #text based bar
 
 
-  # loop for analyzing and storing data from qpcR model fit
-  for(l in 1:length(samples)){
+      # loop for analyzing and storing data from qpcR model fit
+      for(l in 1:length(samples)){
 
-    tempData<-rawData2[rawData2$sampleID==samples[l],]
+        tempData<-rawData2[rawData2$sampleID==samples[l],]
 
-    models[[l]]<-qpcR::pcrfit(tempData, cyc=2, fluo=3, ...)
-    names(models)[l]<-tempData[1,1]
-    setTxtProgressBar(pb, l)
+        tryCatch({
+          models[[l]]<-qpcR::pcrfit(tempData, cyc=2, fluo=3, ...)
+          names(models)[l]<-tempData[1,1]
+        }, error=function(e){cat("ERROR from pcrfit() :",conditionMessage(e), "\n")})
 
 
-  }
+        setTxtProgressBar(pb, l)
 
-  close(pb)
 
-}
+      }
+
+      close(pb)
+
+    }
     if(progress==FALSE){
 
-  # loop for analyzing and storing data from qpcR model fit
-  for(l in 1:length(samples)){
+      # loop for analyzing and storing data from qpcR model fit
+      for(l in 1:length(samples)){
 
-    tempData<-rawData2[rawData2$sampleID==samples[l],]
+        tempData<-rawData2[rawData2$sampleID==samples[l],]
 
-    models[[l]]<-qpcR::pcrfit(tempData, cyc=2, fluo=3, ...)
-    names(models)[l]<-tempData[1,1]
-
-
-
-  }
+        tryCatch({
+          models[[l]]<-qpcR::pcrfit(tempData, cyc=2, fluo=3, ...)
+          names(models)[l]<-tempData[1,1]
+        }, error=function(e){cat("ERROR from pcrfit() :",conditionMessage(e), "\n")})
 
 
 
-}
+
+
+      }
+
+
+
+    }
 
     models
   }
