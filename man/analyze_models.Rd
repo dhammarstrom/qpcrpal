@@ -9,6 +9,8 @@ analyze_models(models, progress = TRUE, ...)
 \arguments{
 \item{models}{a list of models created with qpcrpal::model_qpcr()}
 
+\item{progress}{Should a progress bar be shown?}
+
 \item{...}{Other arguments passed to qpcr::efficiency()}
 
 \item{sampleID}{Col numbers corresponding to ID, condition, timepoint and replicate}

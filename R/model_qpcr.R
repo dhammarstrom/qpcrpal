@@ -15,6 +15,8 @@ model_qpcr<-function(rawData, sampleID=c(2,3,4,5), replicate=TRUE, progress=TRUE
 
   if(!"package:qpcR" %in% search()) stop("You must explicitly load the qpcR package to access models")
 
+  rawData<-data.frame(rawData)
+
   if(replicate==TRUE){
     # creates a variable unique for each sample and target combination
     rawData$sampleID<-paste(rawData[,sampleID[1]],

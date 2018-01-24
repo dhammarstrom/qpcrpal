@@ -2,7 +2,8 @@
 #'
 #' @param models a list of models from model_qpcr()
 #' @param targetID Col numbers corresponding to target identifier
-#' @param progress Should a progress bar be shown?
+#' @param progress logical Should a progress bar be shown?
+#' @param published logical If TRUE only published sigmoidal models (l4, l5, b4 and b5) are compared.
 #' @import "dplyr"
 #' @import "qpcR"
 #' @import "stringr"
@@ -10,7 +11,7 @@
 #' @export
 #'
 #'
-test_models<-function(models, targetID=4){
+test_models<-function(models, targetID=4, published=TRUE){
 
   results<-list()
 
@@ -21,20 +22,39 @@ test_models<-function(models, targetID=4){
 
 
     tryCatch({
-      temp<-qpcR::mselect(models[[i]], do.all=TRUE, verbose=FALSE)
+      temp<-qpcR::mselect(models[i][[1]], do.all=TRUE, verbose=FALSE)
 
-      temp.summary<-data.frame(sample=names(models[i]),
-                               best.model=rownames(temp$retMat)[which.min(temp$retMat[,3])],
-                               l4=temp$retMat[1,3],
-                               l5=temp$retMat[2,3],
-                               l6=temp$retMat[3,3],
-                               l7=temp$retMat[4,3],
-                               b4=temp$retMat[5,3],
-                               b5=temp$retMat[6,3],
-                               b6=temp$retMat[7,3],
-                               b7=temp$retMat[8,3])
+      if(published==TRUE) {
+        temp.summary<-data.frame(sample=names(models[i]),
+                                 best.model=rownames(temp$retMat)[which.min(temp$retMat[c(1,2,5,6),3])],
+                                 l4=temp$retMat[1,3],
+                                 l5=temp$retMat[2,3],
+                                 l6=temp$retMat[3,3],
+                                 l7=temp$retMat[4,3],
+                                 b4=temp$retMat[5,3],
+                                 b5=temp$retMat[6,3],
+                                 b6=temp$retMat[7,3],
+                                 b7=temp$retMat[8,3])
 
-      results[[i]]<-temp.summary
+        results[[i]]<-temp.summary
+
+      }
+      if(published==FALSE) {
+        temp.summary<-data.frame(sample=names(models[i]),
+                                 best.model=rownames(temp$retMat)[which.min(temp$retMat[,3])],
+                                 l4=temp$retMat[1,3],
+                                 l5=temp$retMat[2,3],
+                                 l6=temp$retMat[3,3],
+                                 l7=temp$retMat[4,3],
+                                 b4=temp$retMat[5,3],
+                                 b5=temp$retMat[6,3],
+                                 b6=temp$retMat[7,3],
+                                 b7=temp$retMat[8,3])
+
+        results[[i]]<-temp.summary
+      }
+
+
 
     }, error=function(e){cat("ERROR: ",conditionMessage(e), "\n")})
 

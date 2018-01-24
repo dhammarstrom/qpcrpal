@@ -30,38 +30,34 @@ analyze_efficiency<-function(data , method="outlier", progress=TRUE, ...){
 
       tryCatch({
 
-        temp.fit<-qpcR::expfit(data[[i]], method=method, plot=FALSE, ...)
+        temp.fit<-qpcR::expfit(data[i][[1]], plot=FALSE, ...)
+
+        results[i, 2]<-temp.fit[[1]]
+        results[i, 3]<-temp.fit[[3]]
+        results[i, 4]<-temp.fit[[4]]
+        results[i, 5]<-temp.fit[[5]]
+        results[i, 6]<-temp.fit[[6]]
+        results[i, 7]<-temp.fit[[7]]
+
+        setTxtProgressBar(pb, i)
 
       }, error=function(e){cat("ERROR from expfit() :",conditionMessage(e), "\n")})
-
-      results[i, 2]<-temp.fit[[1]]
-      results[i, 3]<-temp.fit[[3]]
-      results[i, 4]<-temp.fit[[4]]
-      results[i, 5]<-temp.fit[[5]]
-      results[i, 6]<-temp.fit[[6]]
-      results[i, 7]<-temp.fit[[7]]
-
-      setTxtProgressBar(pb, i)
     }
-
   }
 
   if(progress==FALSE){
 
     for(i in 1:n.models){
-
       tryCatch({
-
-        temp.fit<-expfit(data[[i]], method=method, plot=FALSE)
+        temp.fit<-qpcR::expfit(data[i][[1]], plot=FALSE, ...)
+        results[i, 2]<-temp.fit[[1]]
+        results[i, 3]<-temp.fit[[3]]
+        results[i, 4]<-temp.fit[[4]]
+        results[i, 5]<-temp.fit[[5]]
+        results[i, 6]<-temp.fit[[6]]
+        results[i, 7]<-temp.fit[[7]]
 
       }, error=function(e){cat("ERROR from expfit() :",conditionMessage(e), "\n")})
-
-      results[i, 2]<-temp.fit[[1]]
-      results[i, 3]<-temp.fit[[3]]
-      results[i, 4]<-temp.fit[[4]]
-      results[i, 5]<-temp.fit[[5]]
-      results[i, 6]<-temp.fit[[6]]
-      results[i, 7]<-temp.fit[[7]]
     }
   }
   return(results)

@@ -4,14 +4,16 @@
 \alias{test_models}
 \title{Test model fit on models prepared with qpcrpal::model_qpcr(), based on qpcR::mselect().}
 \usage{
-test_models(models, targetID = 4)
+test_models(models, targetID = 4, published = TRUE)
 }
 \arguments{
 \item{models}{a list of models from model_qpcr()}
 
 \item{targetID}{Col numbers corresponding to target identifier}
 
-\item{progress}{Should a progress bar be shown?}
+\item{published}{logical If TRUE only published sigmoidal models (l4, l5, b4 and b5) are compared.}
+
+\item{progress}{logical Should a progress bar be shown?}
 }
 \value{
 A data frame with results from mselect() tests of model fit based on AICc, lower is better.

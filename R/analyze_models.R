@@ -1,7 +1,7 @@
 #' Analyze models from model_qpcr() using efficiency() from the qpcR-package
 #'
 #' @param models a list of models created with qpcrpal::model_qpcr()
-#' @progress Should a progress bar be shown?
+#' @param progress Should a progress bar be shown?
 #' @param ... Other arguments passed to qpcr::efficiency()
 #' @param sampleID Col numbers corresponding to ID, condition, timepoint and replicate
 
