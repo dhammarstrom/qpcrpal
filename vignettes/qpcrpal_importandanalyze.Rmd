@@ -1,18 +1,25 @@
 ---
 title: "qpcrpal - Import and analyze qpcr-data"
 author: "Daniel Hammarström"
-date: "19 juni 2017"
+date: "2020-07-16"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{qpcrpal - Import and analyze qpcr-data}
-  %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
+  %\VignetteEngine{knitr::rmarkdown}
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(qpcR)
 library(qpcrpal)
+library(parallel)
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(stringr)
 ```
 
 ## Introduction to package
@@ -22,9 +29,9 @@ With this package you are able to analyze raw qPCR-data from ABI qPCR-systems. D
 ## Experimental design
 
 ### Overview
-To analyze relative expression and fold-change over different exeprimental conditions, one or more target genes are analyzed in relation to one or more reference genes. To account for possible variations due to instruments, chemistry and day-to-day human clumsiness, reference genes and target genes for one sample batch (e.g. one study participant) are commonly run on the same 96- or 384-well plate. The resulting relative expression is later compared between different sample batches.
+To analyze relative expression and fold-change over different experimental conditions, one or more target genes are analyzed in relation to one or more reference genes. To account for possible variations due to instruments, chemistry and day-to-day human clumsiness, reference genes and target genes for one sample batch (e.g. one study participant) are commonly run on the same 96- or 384-well plate. The resulting relative expression is later compared between different sample batches.
 
-Two or more plates are run with the same target- and reference-genes to create technical replicates. Replicates are modeled togther using the qpcR-package and the model-fit is used to calculate qPCR-variables of interest.
+Two or more plates are run with the same target- and reference-genes to create technical replicates. Replicates are modeled together or separately using the qpcR-package and the model-fit is used to calculate qPCR-variables of interest.
 
 To date this software can handle exports from ABI7500 Software and QuantStudio™ Design & Analysis Software.
 
@@ -32,7 +39,7 @@ To date this software can handle exports from ABI7500 Software and QuantStudio�
 
 To be able to model two or more reactions in concert (replicates), the function `prepare_batch()` must be able to find the replicate identifier. This is done on basis of *Sample Name* and *Target Name* in the exported excel-file from the supported softwares. 
 
-*Sample Name* should consist of information on the sample, i.e. `id`, `condition`, `timepoint` and importantly, `replicate` number. Each sub-information should be separated by a space or a character/symbol (e.g. "_"). The position of the sub-information in the can be specified whitin the `prepare_batch()` or `read_*()` functions (see below). 
+*Sample Name* should consist of information on the sample, i.e. `id`, `condition`, `timepoint` and importantly, `replicate` number. Each sub-information should be separated by a space or a character/symbol (e.g. "_"). The position of the sub-information in the can be specified within the `prepare_batch()` or `read_*()` functions (see below). 
 
 *Target Name* should accuratly separate targets (i.e. genes) and different primer pairs. Separate target and primer pair with by a space or a character/symbol (e.g. "_"). 
 
@@ -41,19 +48,19 @@ To be able to model two or more reactions in concert (replicates), the function 
 Each run must be exported, make sure to export all wells that has been used in the experiment. Export *Raw Data* and *Results* from whitin the export tool of the ABI7500 or Quantstuio Software. All columns of the *Results* should be exported. Save the exported .xls- or .xlsx-file(s) in a folder of your choosing, giving it a unique name.
 
 ### Prepare an analysis-batch
-One analysis batch consists of measured genes-of-interest (GoI) and reference-genes (refG) for all samples in one study. The number of genes in one batch is limited by samples*genes=number of wells. We analyze one batch at the time for accurate handling of GoI and refG. The function `prepare_batch()` uses `read_quant5()` or `read_ABI()` to compile a data frame with raw fluorescence data for every unique sample. The raw fluorescence data is expressed as $R_n=\frac{R}{P}$ where $R$ is the fluorescence of the reporter dye (SYBR) and $P$ is the fluorescence of the passive reference. Store the data frame from `prepare_batch()` as an object in your R environment.
+One analysis batch consists of measured genes-of-interest (GoI) and reference-genes (refG) for all samples in one study. The number of genes in one batch are limited by samples*genes = number of wells. We analyze one batch at the time for accurate handling of GoI and refG. The function `prepare_batch()` uses `read_quant5()` or `read_ABI()` to compile a data frame with raw fluorescence data for every unique sample. The raw fluorescence data is expressed as $R_n=\frac{R}{P}$ where $R$ is the fluorescence of the reporter dye (SYBR) and $P$ is the fluorescence of the passive reference. Store the data frame from `prepare_batch()` as an object in your R environment.
 
 
 ### Analyze raw data
 Once you have your prepared analysis batch stored in the environment (or on a file) you can model it with `model_qpcr()`. Store the output in the environment. This output contains a list of models built from raw fluorescence qpcr data using `qpcR::pcrfit()`. The list of models can subsequently be analyzed using `analyze_models()` which extracts qpcr-estimates from each model using `qpcr::efficiency()`. The resulting data frame contains sample information, model fit estimates and Cq-values, calculated based on the second derivative maximum method.  
 
 ## Example of an analysis workflow
-In this example, four files have been exported from the ABI7500 software and placed in a folder called `./qpcr_exports/`. Prior to export, all Sample Names were organized as participant ID, condition, timepoint and replicate separated by a space. Each target were named as gene symbol and primer pair id separated by a space. 
+In this example, four files have been exported from the ABI7500 software and placed in a folder called `./qpcr_exports/`. Prior to export, all Sample Names were organized as participant ID, condition, time-point and replicate separated by a space. Each target were named as gene symbol and primer pair id separated by a space. 
 
 We start the analysis by importing data and preparing the batch.
 
 ```{r import and batch prep}
-batch<-prepare_batch("qpcr_exports", progress=FALSE)
+batch <- prepare_batch("qpcr_exports")
 ```
 
 The batch contains the following information:
@@ -62,16 +69,16 @@ The batch contains the following information:
 head(batch)
 ```
 
-Using the prepared batch we can now fit models. The `model_qpcr()` function can pass arguments to the `pcrfit()` function, this is a good idea if you want to control model selection for fitting. As a default, a 4-parameter log-logistic model is fitted. This option is made explicit in the example below. 
+Using the prepared batch we can now fit models. The `model_qpcr()` function can pass arguments to the `pcrfit()` function, this is a good idea if you want to control model selection for fitting. As a default, a 4-parameter log-logistic model is fitted. This option is made explicit in the example below. Note that you can specify the number of cores to use in fitting to speed things up. This is done with the parallel package. To use the maximum number of cores (-1) set `cores = "max"`, this will be helpful when importing large data sets.  
 
 ```{r fit_models}
-models<-model_qpcr(batch, model=l4, progress=FALSE)
+models <- model_qpcr(batch,  cores = "max")
 ```
 
 A final step before we can use the data in downstream analysis is to analyze models using `analyze_models()`.
 
 ```{r analyze_models}
-results<-analyze_models(models, progress=FALSE)
+results <- analyze_models(models, cores = "max")
 ```
 
 The resulting data frame contains sample ID separated with the character of your choosing and cpD2 that can be used as the cycle threshold. 
@@ -81,12 +88,100 @@ The resulting data frame contains sample ID separated with the character of your
 results[c(1:6),c(1,9)]
 ```
 
-### Using qpcrpal with pipes
-The functions in this workflow can be expressed as a [pipes](https://cran.r-project.org/web/packages/magrittr/vignettes/magrittr.html). The above workflow can be expressed as:
+The qpcR package includes several types of models to best fit individual reactions. We might want to use the best fit model for each target defined as the model the has the greates number of best-fits per target over all samples. We can do this by using the function `test_models()`. Use the list of models created by `model_qpcr()`. 
 
-```{r pipe_example, eval=FALSE}
-results<-prepare_batch("qpcr_exports", progress=FALSE)%>%
-  model_qpcr(model=l4, progress=FALSE)%>%
-  analyze_models(progress=FALSE)
+```{r test_models}
+
+model.tests <- test_models(models, cores = "max")
+
+```
+
+The result of this function is a list containing summary results and "raw" data of model comparisons. We are interested in the summary results. To plot the data: 
+
+```{r test-model-plot}
+
+model.tests$figure
+
+```
+The summary table can be used to do a new fitting process. We want to fit each target with the model that suits the target best. First we have to reduce the summary data frame to only contain the best model and thereafter loop over this data frame and the batch.
+
+```{r loop-best-fitting-model}
+
+best.models <- model.tests$results %>%
+  group_by(target) %>%
+  slice(which.max(n)) %>%
+  data.frame()
+
+# Make a list to store results 
+results <- list()
+
+# Loop through all targets in best.models data frame
+for(i in 1:nrow(best.models)){
+  
+  results[[i]] <- batch %>%
+    filter(target == best.models[i,1]) %>%
+    model_qpcr(model = get(best.models[i,2]), replicate = FALSE) %>% 
+    # use the best model in each model_qpcr
+    analyze_models() # analyze models for cpD2
+  
+  message(paste0("Target ", best.models[i,1], " has been analyzed"))
+  
+}
+
+
+
+# combine all results and str split id variables
+qpcrdat <- bind_rows(results) 
+
+id.var <- str_split_fixed(qpcrdat$ID, "_", 5) 
+colnames(id.var) <- c("subject", "leg", "time", "cDNA", "target")  
+qpcrdat <- cbind(id.var, qpcrdat[,-1])
+
+head(qpcrdat[,1:5])
+
+
+```
+The above code selects uses the model from the summary data frame in modeling. The message tells us how far the loop has reached. 
+
+A final step before the data is compiled for analysis is to estimate PCR efficiency. Reaction efficiencies are used to correct convert cycle threshold values to relative abundancies. We get efficiency values from `analyze_models` but we might want to have more control over this process. We can use `analyze_efficiency` to do this. 
+
+We will use a loop and the best fitting model to estimate per reaction efficiencies. For our (most) purposes, we will use the target average efficiency to calculate relative abundance per reaction.
+
+```{r analyze-efficiencies}
+
+# Make a list to store results 
+effs <- list()
+
+# Loop through all targets in best.models data frame
+for(i in 1:nrow(best.models)){
+  
+  effs[[i]] <- batch %>%
+    filter(target == best.models[i,1]) %>%
+    model_qpcr(model = get(best.models[i,2]), replicate = FALSE) %>% 
+    # use the best model in each model_qpcr
+    analyze_efficiency(method = "cpD2", model = "linexp")
+  
+  message(paste0("Target ", best.models[i,1], " has been analyzed"))
+  
+}
+
+
+effs <- bind_rows(effs) 
+
+id.var <- str_split_fixed(effs$ID, "_", 5) 
+colnames(id.var) <- c("subject", "leg", "time", "cDNA", "target")  
+effs <- cbind(id.var, effs[,-1])
+
+ #### Combine the data per target
+
+effs %>%
+  group_by(target) %>%
+  summarise(eff = median(eff, na.rm = TRUE)) %>%
+  print()
+
+
+```
+
+Combining the data (efficiencies and threshold values) gives the starting point for statistical analyses of your qPCR-data. 
 ```
 

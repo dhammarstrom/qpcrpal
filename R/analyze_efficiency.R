@@ -1,64 +1,94 @@
 #' Calculate PCR efficiency over multiple amplification models. This function is a wrapper around qpcR:expfit()
 #'
-#' @param data A list of models built with prepare_batch() or read_[EQUIPMENT]()
+#' @param mods A list of models built with prepare_batch() or read_[EQUIPMENT]() and the processed with model_qpcr()
+#' @param method Defaults to "cpD2", see qpcR::expfit for alternatives
+#' @param cores Number of cores to use in parallel execution of the function. Note that cores = 1 may be faster for small data sets.
 #' @param ... Other arguments passed to qpcR::expfit()
-#' @param progress Should a progress bar be shown?
-#' @return A data frame with parameters from qpcR::expfit()
-#' @import "tidyr"
+#' @return A data frame with parameters from qpcR::expfit(), if NA are returned instead of efficiencies qpcR::expfit was unable to estimate efficiencies.
 #' @import "dplyr"
+#' @import "parallel"
 #' @import "qpcR"
-#' @import "tidyr"
 #' @export
 
-analyze_efficiency<-function(data , method="outlier", progress=TRUE, ...){
+analyze_efficiency <- function(mods, method="cpD2", cores = "max", ...){
 
-
-  n.models<-length(data)
-
-
-  results<-data.frame(ID=names(data),
-                      point=rep(NA, length=n.models),
-                      eff=rep(NA, length=n.models),
-                      AIC=rep(NA, length=n.models),
-                      resVar=rep(NA, length=n.models),
-                      RMSE=rep(NA, length=n.models),
-                      init=rep(NA, length=n.models))
-  if(progress==TRUE){
-    pb <- txtProgressBar(min = 0, max = n.models, style = 3) #text based bar
-
-    for(i in 1:n.models){
-
-      tryCatch({
-
-        temp.fit<-qpcR::expfit(data[i][[1]], plot=FALSE, ...)
-
-        results[i, 2]<-temp.fit[[1]]
-        results[i, 3]<-temp.fit[[3]]
-        results[i, 4]<-temp.fit[[4]]
-        results[i, 5]<-temp.fit[[5]]
-        results[i, 6]<-temp.fit[[6]]
-        results[i, 7]<-temp.fit[[7]]
-
-        setTxtProgressBar(pb, i)
-
-      }, error=function(e){cat("ERROR from expfit() :",conditionMessage(e), "\n")})
-    }
+  # Use maximal n cores -1 as default
+  if(cores == "max") cores <- detectCores() -1
+  if(cores > detectCores()){
+    cores <- detectCores() -1
+    warning(paste0("You have selected more cores than you have access to. Number of cores set to ", cores),
+            immediate. = TRUE)
   }
 
-  if(progress==FALSE){
+  method <- method
 
-    for(i in 1:n.models){
-      tryCatch({
-        temp.fit<-qpcR::expfit(data[i][[1]], plot=FALSE, ...)
-        results[i, 2]<-temp.fit[[1]]
-        results[i, 3]<-temp.fit[[3]]
-        results[i, 4]<-temp.fit[[4]]
-        results[i, 5]<-temp.fit[[5]]
-        results[i, 6]<-temp.fit[[6]]
-        results[i, 7]<-temp.fit[[7]]
-
-      }, error=function(e){cat("ERROR from expfit() :",conditionMessage(e), "\n")})
-    }
+  # Define function that replaces errors with NA in expfit.
+  expfit.tryCatch <- function(x, method = method, ...) {
+    tryCatch({
+      x.return  <-  qpcR::expfit(x, method = method, plot = FALSE, ...)
+      return(x.return)
+    },
+    error = function(cond) {
+      message(conditionMessage(cond))
+      # Choose a return value in case of error
+      return(list(points = NA,
+                  cycles = NA,
+                  eff = NA,
+                  AIC = NA,
+                  resVar = NA,
+                  RMSE = NA,
+                  init = NA,
+                  mod = NA))}
+    )
   }
-  return(results)
+  # define function to retrieve data from lists
+  eff.retrieve <- function(x){
+    return(as.data.frame(x[3:7]))
+  }
+
+  # If only one core is used, use lapply
+  if(cores == 1){
+
+    # apply qpcR::expfit over all models
+    eff.fits <- lapply(mods, expfit.tryCatch, method = method)
+
+    eff.df <- cbind(data.frame(ID = names(eff.fits)), bind_rows(lapply(eff.fits, eff.retrieve)))
+
+    if(any(is.na((eff.df[,2])))) {
+      warning("qpcR::expfit was unable to calculate one or more efficiencies, check your input data.",
+              call. = FALSE,
+              immediate. = TRUE)
+    }
+
+    return(eff.df)
+  }
+
+  # Use parallel process if cores are defined to more than 1
+  if(cores > 1){
+    # Create cluster based on selected number of cores
+    clust <- makeCluster(cores)
+    # Export package functions to cluster
+    clusterEvalQ(clust, {
+      library(qpcR)
+    })
+
+    # Use parallel lapply
+    eff.fits <- parLapply(clust, mods, expfit.tryCatch, method = method)
+    # Stop clusters
+    stopCluster(clust)
+    # Bind data and return
+    eff.df <- cbind(data.frame(ID = names(eff.fits)), bind_rows(lapply(eff.fits, eff.retrieve)))
+
+    if(any(is.na((eff.df$eff)))) {
+      warning("qpcR::expfit was unable to calculate one or more efficiencies, check your input data.",
+              call. = FALSE,
+              immediate. = TRUE)
+    }
+
+    return(eff.df)
+
+  }
+
+
 }
+

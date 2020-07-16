@@ -1,73 +1,99 @@
 #' Test model fit on models prepared with qpcrpal::model_qpcr(), based on qpcR::mselect().
 #'
 #' @param models a list of models from model_qpcr()
-#' @param targetID Col numbers corresponding to target identifier
-#' @param progress logical Should a progress bar be shown?
-#' @param published logical If TRUE only published sigmoidal models (l4, l5, b4 and b5) are compared.
+#' @param targetID Column number corresponding to target (gene) identifier
+#' @param sep A character that separates information in the identifiers (names of lists)
+#' @param cores Specifies the number of cores used in model testing
 #' @import "dplyr"
+#' @import "ggplot2
 #' @import "qpcR"
 #' @import "stringr"
-#' @return A data frame with results from mselect() tests of model fit based on AICc, lower is better.
+#' @import "parallel"
+#' @return A list with summary counts of best-fit models per target (based on AICc), a figure with the same information and raw data if one wants to comute best fit models based on other criterias. Raw data comes from qpcR::mselect.
 #' @export
 #'
 #'
-test_models<-function(models, targetID=4, published=TRUE){
-
-  results<-list()
-
-  pb <- txtProgressBar(min = 0, max = length(models), style = 3) #text based bar
-
-    for(i in 1:length(models)){
+test_models <- function(models, targetID = 4, sep = "_", cores = "max"){
 
 
-
-    tryCatch({
-      temp<-qpcR::mselect(models[i][[1]], do.all=TRUE, verbose=FALSE)
-
-      if(published==TRUE) {
-        temp.summary<-data.frame(sample=names(models[i]),
-                                 best.model=rownames(temp$retMat)[which.min(temp$retMat[c(1,2,5,6),3])],
-                                 l4=temp$retMat[1,3],
-                                 l5=temp$retMat[2,3],
-                                 l6=temp$retMat[3,3],
-                                 l7=temp$retMat[4,3],
-                                 b4=temp$retMat[5,3],
-                                 b5=temp$retMat[6,3],
-                                 b6=temp$retMat[7,3],
-                                 b7=temp$retMat[8,3])
-
-        results[[i]]<-temp.summary
-
-      }
-      if(published==FALSE) {
-        temp.summary<-data.frame(sample=names(models[i]),
-                                 best.model=rownames(temp$retMat)[which.min(temp$retMat[,3])],
-                                 l4=temp$retMat[1,3],
-                                 l5=temp$retMat[2,3],
-                                 l6=temp$retMat[3,3],
-                                 l7=temp$retMat[4,3],
-                                 b4=temp$retMat[5,3],
-                                 b5=temp$retMat[6,3],
-                                 b6=temp$retMat[7,3],
-                                 b7=temp$retMat[8,3])
-
-        results[[i]]<-temp.summary
-      }
-
-
-
-    }, error=function(e){cat("ERROR: ",conditionMessage(e), "\n")})
-
-
-
-    setTxtProgressBar(pb, i)
+  # Use maximal n cores -1 as default
+  if(cores == "max") cores <- detectCores() -1
+  if(cores > detectCores()){
+    cores <- detectCores() -1
+    warning(paste0("You have selected more cores than you have access to. Number of cores set to ", cores),
+            immediate. = TRUE)
   }
 
-  close(pb)
 
-  results<-dplyr::bind_rows(results)
-  results$target<-str_split_fixed(results$sample,"_", 5)[,targetID]
-  return(results)
+
+  # Defines function for lapply
+  mselect.trycatch <- function(x){
+
+    tryCatch({
+
+      temp <- data.frame(qpcR::mselect(x, do.all=TRUE, verbose=FALSE)$retMat)
+
+      temp$model <- rownames(temp)
+      rownames(temp) <- NULL
+
+      return(temp)
+    },
+    error = function(cond) {
+      message(conditionMessage(cond))
+      # Choose a return value in case of error
+      return(data.frame(logLik      = rep(NA, 8),
+                        AIC         = rep(NA, 8),
+                        AICc        = rep(NA, 8),
+                        resVar      = rep(NA, 8),
+                        ftest       = rep(NA, 8),
+                        LR          = rep(NA, 8),
+                        Chisq       = rep(NA, 8),
+                        AIC.weights = rep(NA, 8),
+                        AICc.weights= rep(NA, 8),
+                        model       =c("l4", "l5", "l6", "l7", "b4", "b5", "b6", "b7")))}
+    )
+  }
+
+
+  clust <- makeCluster(cores)
+  # Export package functions to cluster
+  clusterEvalQ(clust, {
+    library(qpcR)
+  })
+
+  # Use parallel lapply
+  model.tests <- parLapply(clust, models, mselect.trycatch)
+
+  # Combine data from each data frame.
+  model.tests.results <- bind_rows(mapply(cbind, model.tests, "ID" = names(models), SIMPLIFY = F))
+
+
+  # Creates a summary data frame
+  model.combined.results <-  model.tests.results %>%
+    group_by(ID) %>%
+    dplyr::slice(which.min(AICc)) %>%
+    # Separate the id column to lettered ids by the separator
+    tidyr::separate(ID, into = letters[1:(stringr::str_count(names(model.tests[1]), sep) + 1)],  sep = "_") %>%
+    # Group by the target id (based on info given in the function arguments)
+    dplyr::group_by(.data[[(letters[1:(stringr::str_count(names(model.tests[1]), sep) + 1)][targetID])]], model) %>%
+    dplyr::count() %>%
+    dplyr::select(target = as.name(letters[1:(stringr::str_count(names(model.tests[1]), sep) + 1)][targetID]), model, n) %>%
+    data.frame()
+
+  fig <- model.combined.results %>%
+    ggplot2::ggplot(ggplot2::aes(n, target, fill = model)) +
+    ggplot2::geom_bar(stat="identity") +
+    ggplot2::labs(x = "Number of best-fit models",
+                  y = "Target",
+                  fill = "Model",
+                  title = "Summary of best-fit tests") +
+    ggplot2::theme_classic()
+
+  # Return a list
+  return(list(results = model.combined.results,
+              figure = fig,
+              raw.data = model.tests.results))
+
 
 }
 
