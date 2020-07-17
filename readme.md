@@ -5,6 +5,6 @@ qpcrpal is your pal in dealing with alot of plates in a qPCR-experiment. With th
 
 ### Installation
 ```{r installation}
-library(devtools)
-install_github("dhammarstrom/qpcrpal")
+library(remotes)
+remotes::install_github("dhammarstrom/qpcrpal", build_vignettes = TRUE)
 ```
