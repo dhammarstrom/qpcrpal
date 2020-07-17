@@ -64,6 +64,9 @@ test_models <- function(models, targetID = 4, sep = "_", cores = "max"){
   # Use parallel lapply
   model.tests <- parLapply(clust, models, mselect.trycatch)
 
+  # Stop clusters
+  stopCluster(clust)
+
   # Combine data from each data frame.
   model.tests.results <- bind_rows(mapply(cbind, model.tests, "ID" = names(models), SIMPLIFY = F))
 
