@@ -50,7 +50,7 @@ analyze_efficiency <- function(mods, method="cpD2", cores = "max", ...){
   if(cores == 1){
 
     # apply qpcR::expfit over all models
-    eff.fits <- lapply(mods, expfit.tryCatch, method = method)
+    eff.fits <- lapply(mods, expfit.tryCatch, method = method, ...)
 
     eff.df <- cbind(data.frame(ID = names(eff.fits)), bind_rows(lapply(eff.fits, eff.retrieve)))
 
@@ -73,7 +73,7 @@ analyze_efficiency <- function(mods, method="cpD2", cores = "max", ...){
     })
 
     # Use parallel lapply
-    eff.fits <- parLapply(clust, mods, expfit.tryCatch, method = method)
+    eff.fits <- parLapply(clust, mods, expfit.tryCatch, method = method, ...)
     # Stop clusters
     stopCluster(clust)
     # Bind data and return
